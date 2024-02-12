@@ -13,6 +13,7 @@ const TokenManager          = require('../managers/token/Token.manager');
 const SharkFin              = require('../managers/shark_fin/SharkFin.manager');
 const TimeMachine           = require('../managers/time_machine/TimeMachine.manager');
 
+const UserManager            = require('../managers/entities/user/User.manager');
 /** 
  * load sharable modules
  * @return modules tree with instance of each module
@@ -42,6 +43,7 @@ module.exports = class ManagersLoader {
     }
 
     _preload(){
+        console.log('-------------------ManagersLoader _preload-------------------');
         const validatorsLoader    = new ValidatorsLoader({
             models: require('../managers/_common/schema.models'),
             customValidators: require('../managers/_common/schema.validators'),
@@ -56,6 +58,7 @@ module.exports = class ManagersLoader {
     }
 
     load() {
+        console.log('-------------------ManagersLoader load-------------------');
         this.managers.responseDispatcher  = new ResponseDispatcher();
         this.managers.liveDb              = new LiveDB(this.injectable);
         const middlewaresLoader           = new MiddlewaresLoader(this.injectable);
@@ -66,6 +69,8 @@ module.exports = class ManagersLoader {
         this.managers.shark               = new SharkFin({ ...this.injectable, layers, actions });
         this.managers.timeMachine         = new TimeMachine(this.injectable);
         this.managers.token               = new TokenManager(this.injectable);
+        //adding user
+        this.managers.user                = new UserManager(this.injectable);
         /*************************************************************************************************/
         this.managers.mwsExec             = new VirtualStack({ ...{ preStack: [/* '__token', */'__device',] }, ...this.injectable });
         this.managers.userApi             = new ApiHandler({...this.injectable,...{prop:'httpExposed'}});
