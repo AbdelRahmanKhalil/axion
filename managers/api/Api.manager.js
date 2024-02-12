@@ -12,6 +12,7 @@ module.exports = class ApiHandler {
      */
 
     constructor({config, cortex, cache, managers, mwsRepo, prop}){
+        console.log('-------------------inside ApiHandler constructor-------------------');
         this.config        = config;
         this.cache         = cache; 
         this.cortex        = cortex;
@@ -30,9 +31,9 @@ module.exports = class ApiHandler {
         // console.log(`# Http API`);
         Object.keys(this.managers).forEach(mk=>{
             if(this.managers[mk][this.prop]){
-                // console.log('managers - mk ', this.managers[mk])
+                console.log('managers - mk ', this.managers[mk])
                 this.methodMatrix[mk]={};
-                // console.log(`## ${mk}`);
+                console.log(`## ${mk}`);
                 this.managers[mk][this.prop].forEach(i=>{
                     /** creating the method matrix */
                     let method = 'post';
@@ -77,8 +78,9 @@ module.exports = class ApiHandler {
 
                 });
             }
+            //console.log("managers: " + managers[mk] + "\nmethodMatrix: " +methodMatrix[mk] + "\nmwsStack: "+ mwsStack);
         });
-
+        //console.log("managers: " + JSON.stringify(this.managers) + "\nmethodMatrix: " +JSON.stringify(this.methodMatrix) + "\nmwsStack: "+ JSON.stringify(this.mwsStack));
         /** expose apis through cortex */
         Object.keys(this.managers).forEach(mk=>{
             if(this.managers[mk].interceptor){
@@ -108,6 +110,7 @@ module.exports = class ApiHandler {
 
 
     async _exec({targetModule, fnName, cb, data}){
+        console.log('-------------------ApiHandler _exec-------------------');
         let result = {};
         
             try {
@@ -123,7 +126,7 @@ module.exports = class ApiHandler {
 
      /** a middle for executing admin apis trough HTTP */
     async mw(req, res, next){
-
+        console.log('-------------------ApiHandler mw-------------------');
         let method        = req.method.toLowerCase();
         let moduleName    = req.params.moduleName;
         let context       = req.params.context;
@@ -142,7 +145,7 @@ module.exports = class ApiHandler {
             return this.managers.responseDispatcher.dispatch(res, {ok: false, message: `unable to find function ${fnName} with method ${method}`});
         }
 
-        // console.log(`${moduleName}.${fnName}`);
+         console.log(`${moduleName}.${fnName}`);
 
         let targetStack = this.mwsStack[`${moduleName}.${fnName}`];
 

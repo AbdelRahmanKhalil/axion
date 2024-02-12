@@ -16,6 +16,7 @@ module.exports = class UserServer {
 
     /** server configs */
     run(){
+        console.log('-------------------inside UserServer run-------------------');
         app.use(cors({origin: '*'}));
         app.use(express.json());
         app.use(express.urlencoded({ extended: true}));

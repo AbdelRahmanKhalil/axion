@@ -10,7 +10,7 @@ const runTest = async (redis, prefix) => {
 }
 
 const createClient = ({ prefix, url }) => {
-
+  console.log('-------------------redis-client createClient-------------------');
   console.log({ prefix, url })
 
   const redis = new Redis(url,{
