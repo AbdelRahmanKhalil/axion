@@ -1,74 +1,126 @@
-module.exports = class User { 
+const UserDb = require('./UserDB');
 
-    constructor({utils, cache, config, cortex, managers, validators, mongomodels }={}){
-        this.config              = config;
-        this.cortex              = cortex;
-        this.validators          = validators; 
-        this.mongomodels         = mongomodels;
-        this.tokenManager        = managers.token;
-        this.usersCollection     = "users";
-        this.userExposed         = ['createUser'];
-        this.httpExposed         = ['createUser'];
-        this.cache               = cache;
+module.exports = class User {
+
+    constructor({ utils, cache, config, cortex, managers, validators, mongomodels } = {}) {
+        this.config = config;
+        this.cortex = cortex;
+        this.validators = validators;
+        this.mongomodels = mongomodels;
+        this.tokenManager = managers.token;
+        this.usersCollection = "users";
+        this.userExposed = ['createUser'];
+        this.httpExposed = ['post=createUser', 'get=getUserData', 'put=updateUser', 'delete=deleteUser'];
+        //,'get=getUserData','put=updateUser','delete=deleteUser'];
+        this.cache = cache;
+        this.dataBase = new UserDb(this.mongomodels.User)
     }
 
-    insertUserInDb(user){
-        // Insert created user in DB (will not insert)
-        const userKey = `user:${user.username}`;
-        this.cache.hash.set({
-            key: userKey,
-            //data: userData
-            data: user
-        }).then(result => {
-            if(result > 0){
-                console.log('User data stored successfully:', result);
-            }
-            else if(result == 0){
-                console.log('User already exists:', result);
-            }
-            return result;
-            
-        }).catch(error => {
-            console.error('Error storing user data:', error);
-            return -1;
-        });
 
-        
-   }
-
-    
-
-    async createUser({username, email, password}){
+    async createUser({ username, email, password }) {
         console.log('-------------------UserManager createUser-------------------');
-        const user = {username, email, password};
-        console.log('username:'+user.username+' email:'+ user.email+' password:'+ user.password);
+        const user = { username, email, password };
+        console.log('username:' + user.username + ' email:' + user.email + ' password:' + user.password);
         // Data validation
         let result = await this.validators.user.createUser(user);
-        if(result) return result;
-        
+        if (result) return result;
+
         // Creation Logic
-        let createdUser     = {username, email, password}
-        let longToken       = this.tokenManager.genLongToken({userId: createdUser._id, userKey: createdUser.key });
+        let createdUser = { username, email, password }
+        let longToken = this.tokenManager.genLongToken({ userId: createdUser._id, userKey: createdUser.key });
+
+        try{
+            // Insert user in database
+            result = await this.dataBase.insertUserInDb(createdUser);
+            console.log('insert res=' + result);
+        }catch(error){
+            return {
+                error: 'Error saving user'
+            }
+        }
         
-        // Insert user in database
-        let res = this.insertUserInDb(createdUser);
-        console.log('res='+res);
-
-        // Retrieve user data from DB
-        const userKey = `user:${username}`;
-        this.cache.hash.get({ key: userKey }).then(userData => {
-            console.log('User data retrieved successfully:', userData);
-        }).catch(error => {
-            console.error('Error retrieving user data:', error);
-        });
-
-        // Response
         return {
-            user: createdUser, 
-            longToken 
-        };
+            user: createdUser,
+            longToken
+        }
+
     }
 
-    
+    async deleteUser({username}) {
+        console.log('-------------------UserManager deleteUser-------------------');
+        let result = await this.validators.user.deleteUser({username});
+        if (result) return result;
+        try {
+
+            // Delete user from database
+            result = await this.dataBase.deleteUser({username});
+            console.log('delete res=', result);
+            if(result.deletedCount == 1){
+                return;
+            }
+            else{
+                return { error: 'User not found' };
+            }
+        } catch (error) {
+            console.error('Error deleting user:', error);
+            return { error: 'Failed to delete user' };
+        }
+    }
+
+    async updateUser({ username, email, password }) {
+        console.log('-------------------UserManager updateUser-------------------');
+        const updatedUser = { username, email, password };
+
+        // Data validation
+        let result = await this.validators.user.updateUser(updatedUser);
+        if (result) return result;
+
+        try {
+            // Update user in database
+            result = await this.dataBase.updateUser({username: updatedUser.username},{email: updatedUser.email, password: updatedUser.password});
+            console.log('update res=', result);
+            if(result.matchedCount == 0){
+                return { error: 'User not found' };
+            }
+            else if(result.matchedCount == 1 && result.modifiedCount == 0){
+                return { error: 'Nothing to update' };
+            }
+            return {
+                user: updatedUser
+            }
+        } catch (error) {
+            console.error('Error updating user:', error);
+            return { error: 'Failed to update user' };
+        }
+    }
+
+    async getUserData({ __query }) {
+        console.log('-------------------getUserData-------------------');
+        try {
+
+            console.log(__query.username);
+            const username = __query.username;
+            
+            let result = await this.validators.user.getUserData({username});
+            if (result) return result;
+            // Retrieve user data from database
+            result = await this.dataBase.findUsers({ username: username })
+            console.log('get res=', result);
+            if (result.length == 0){
+                return { error: 'User not found' };
+            }
+
+            return result
+        } catch (error) {
+            console.error('Error retrieving user data:', error);
+            return { error: 'Failed to retrieve user data' };
+        }
+    }
+
+
+
+
+
+
 
 }
