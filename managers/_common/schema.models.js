@@ -6,6 +6,11 @@ module.exports = {
         type: "string",
         length: { min: 1, max: 50 },
     },
+    school: {
+        path: "school",
+        type: "string",
+        length: { min: 1, max: 50 },
+    },
     username: {
         path: 'username',
         type: 'string',
