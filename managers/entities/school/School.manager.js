@@ -11,7 +11,7 @@ module.exports = class School {
         this.tokenManager = managers.token;
         this.schoolCollection = "schools";
         this.schoolExposed = ['createUser'];
-        this.httpExposed = ['post=createSchool', 'get=getSchools', 'put=updateSchool', 'delete=deleteSchool'];
+        this.httpExposed = ['post=createSchool', 'get=getSchools', /*'put=updateSchool',*/ 'delete=deleteSchool'];
 
         this.cache = cache;
         this.dataBase = new SchoolDB(this.mongomodels.School);
