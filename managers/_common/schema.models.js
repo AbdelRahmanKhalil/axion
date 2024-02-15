@@ -12,6 +12,11 @@ module.exports = {
         length: {min: 3, max: 20},
         custom: 'username',
     },
+    name: {
+        path: 'name',
+        type: 'string',
+        length: {min: 3, max: 20},
+    },
     password: {
         path: 'password',
         type: 'string',
