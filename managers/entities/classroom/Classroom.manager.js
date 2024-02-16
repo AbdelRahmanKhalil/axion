@@ -1,5 +1,6 @@
 const ClassroomDB = require('./ClassroomDB');
 const SchoolDB = require('../school/SchoolDB');
+const StudentDB = require('../student/StudentDB');
 module.exports = class Classroom {
 
     constructor({ cache, config, cortex, managers, validators, mongomodels } = {}) {
@@ -10,10 +11,11 @@ module.exports = class Classroom {
         this.tokenManager = managers.token;
         this.classroomCollection = "classrooms";
         this.classroomExposed = ['createUser'];
-        this.httpExposed = ['post=createClassroom', 'get=getClassrooms', 'put=updateClassroom', 'delete=deleteClassroom'];
+        this.httpExposed = ['post=createClassroom', 'get=getClassrooms', /*'put=updateClassroom'*/, 'delete=deleteClassroom'];
         this.cache = cache;
         this.dataBase = new ClassroomDB(this.mongomodels.Classroom);
         this.schoolDB = new SchoolDB(this.mongomodels.School);
+        this.studentDB = new StudentDB(this.mongomodels.Student);
     }
 
     async createClassroom(classroomData) {
@@ -56,7 +58,17 @@ module.exports = class Classroom {
 
     async getClassrooms({ __query }) {
         try {
+            let query = {};
+            if (__query.name) {
+                console.log(__query.name);
+                query = { name: __query.name };
+            } else if (__query.id) {
+                query = { _id: __query.id }
+            }
             const classrooms = await this.dataBase.findClassrooms(query);
+            if (classrooms.length == 0) {
+                return { error: 'Classroom not found' };
+            }
             return classrooms;
         } catch (error) {
             console.error('Error getting classrooms:', error);
@@ -64,23 +76,47 @@ module.exports = class Classroom {
         }
     }
 
-    async updateClassroom(query, update) {
-        try {
-            const result = await this.dataBase.updateClassroom(query, update);
-            return result;
-        } catch (error) {
-            console.error('Error updating classroom:', error);
-            throw error;
-        }
-    }
+    // async updateClassroom(query, update) {
+    //     try {
+    //         const result = await this.dataBase.updateClassroom(query, update);
+    //         return result;
+    //     } catch (error) {
+    //         console.error('Error updating classroom:', error);
+    //         throw error;
+    //     }
+    // }
 
-    async deleteClassroom(query) {
+    async deleteClassroom({id}) {
         try {
-            const result = await this.dataBase.deleteClassroom(query);
-            return result;
+            console.log({_id: id});
+            let result = await this.dataBase.findClassrooms({_id: id});
+            console.log("findClassrooms result=", result);
+            if(result.length > 0){
+                let result2 = {};
+
+                if(result[0].students.length > 0){
+                    await result.students.forEach(studentId => {
+                        result2 = this.studentDB.deleteClassroomFromStudent(studentId);
+                        console.log("Result2 for deleting classroom from student "+studentId+" = ",result2);
+                    });
+                }
+                
+
+                result = await this.schoolDB.deleteClassroomFromSchool(result.school, id);
+                console.log("deleteClassroomFromSchool result=", result);
+                
+                
+                console.log("deleteClassroomFromStudent result=", result);
+                result = await this.dataBase.deleteClassroom({_id: id});
+                console.log("deleteClassroom result=", result);
+
+            }
+            else return {error: "Classroom not found"};
+            
+            return;
         } catch (error) {
             console.error('Error deleting classroom:', error);
-            throw error;
+            return {error: "Error deleting classroom"};
         }
     }
 }
