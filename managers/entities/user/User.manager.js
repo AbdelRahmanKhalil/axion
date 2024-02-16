@@ -73,11 +73,11 @@ module.exports = class User {
         return true;
     }
 
-    async deleteUser({ __longToken, username }) {
+    async deleteUser(__longToken) {
 
-
+        const username = __longToken.username;
         // Chech user privilege
-        if (! await this.isUserAuthorized(__longToken)) return { error: "schooladmin is unauthorized" };
+        if (! await this.isUserAuthorized(__longToken.__longToken)) return { error: "schooladmin is unauthorized" };
 
         console.log('-------------------UserManager deleteUser-------------------');
         let result = await this.validators.user.deleteUser({ username });
@@ -99,11 +99,13 @@ module.exports = class User {
         }
     }
 
-    async updateUser(__longToken, { username, email, password }) {
+    async updateUser(__longToken) {
         console.log('-------------------UserManager updateUser-------------------');
-
+        const username = __longToken.username;
+        const email = __longToken.email;
+        const password = __longToken.password;
         // Chech user privilege
-        if (! await this.isUserAuthorized(__longToken)) return { error: "schooladmin is unauthorized" };
+        if (! await this.isUserAuthorized(__longToken.__longToken)) return { error: "schooladmin is unauthorized" };
 
 
         const updatedUser = { username, email, password };
@@ -131,11 +133,11 @@ module.exports = class User {
         }
     }
 
-    async getUserData({ __query }) {
+    async getUserData({__longToken, __query }) {
         console.log('-------------------getUserData-------------------');
 
         // Chech user privilege
-        if (! await this.isUserAuthorized(__longToken)) return { error: "schooladmin is unauthorized" };
+        if (! await this.isUserAuthorized(__longToken.__longToken)) return { error: "schooladmin is unauthorized" };
 
 
         try {
