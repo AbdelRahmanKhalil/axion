@@ -18,28 +18,26 @@ module.exports = class Student {
         this.classroomDB = new ClassroomDB(this.mongomodels.Classroom);
     }
     
-    async createStudent({ name, schoolName, classroomName }) {
+    async createStudent({ name, schoolName, classroomId }) {
         console.log('-------------------createStudent-------------------');
         
         try {
             // Find the school by name
             const school = await this.schoolDB.findSchools({ name: schoolName });
             if (!school || school.length === 0) {
-                throw new Error(`School '${schoolName}' not found`);
+                return {error: `School '${schoolName}' not found`};
             }
             
             // Get the school ID
             const schoolId = school[0]._id;
             
-            // Find the classroom by name within the school
-            const classrooms = await this.classroomDB.findClassrooms({ school: schoolId, name: classroomName });
+            // Find the classroom by id
+            const classrooms = await this.classroomDB.findClassrooms({ _id: classroomId });
             if (!classrooms || classrooms.length === 0) {
-                throw new Error(`Classroom '${classroomName}' not found in school '${schoolName}'`);
+                return {error: `Classroom '${classroomId}' not found`};
             }
             
-            // Get the classroom ID
-            const classroomId = classrooms[0]._id;
-            
+           
             // Create student data
             const studentData = { name, school: schoolId, classroom: classroomId };
             
@@ -55,34 +53,50 @@ module.exports = class Student {
             return newStudent;
         } catch (error) {
             console.error('Error creating student:', error);
-            throw error;
+            return {
+                error: 'Error creating student'
+            };
         }
     }
     
 
     async getStudents({ __query }) {
         try {
-
-            console.log(__query.name);
-            const StudentName = __query.name;
-            // limited to get by name ( not id or classroom or school )
-            const students = await this.dataBase.findStudents({name: StudentName});
+            let query = {};
+            // only name is working for now
+            if (__query.name !== null) {
+                console.log(__query.name);
+                query = { name: __query.name };
+            }else if (__query.id !== null) {
+                query = { _id: __query.id };
+            }else if (__query.school !== null){
+                query = { school: __query.school };
+            }
+            else if (__query.classroom !== null){
+                query = { classroom: __query.classroom };
+            }
+            console.log(query);
+            
+            const students = await this.dataBase.findStudents(query);
+            if (students.length == 0) {
+                return { error: 'Student not found' };
+            }
             return students;
         } catch (error) {
             console.error('Error getting students:', error);
-            throw error;
+            return {error: "Error getting students"};
         }
     }
-
-    async updateStudent(query, update) {
+    //to test
+    async updateStudent(update) {
         try {
             // Find the student to be updated
-            const student = await this.dataBase.findStudents(query);
+            const student = await this.dataBase.findStudents({_id: update.id});
             if (!student || student.length === 0) {
-                throw new Error(`Student not found with query: ${JSON.stringify(query)}`);
+                return {error: "Student not found"};
             }
             
-            const updatedStudent = await this.dataBase.updateStudent(query, update);
+            const updatedStudent = await this.dataBase.updateStudent({_id: update.id}, update);
             
             // If the student's classroom or school information has changed, update the lists in the corresponding classroom and school
             if (update.classroom || update.school) {
@@ -90,12 +104,12 @@ module.exports = class Student {
                 
                 // Remove student's ID from the old classroom's list of students
                 if (student[0].classroom.toString() !== classroom) {
-                    await this.classroomDB.removeStudentFromClassroom(student[0].classroom, student[0]._id);
+                    await this.classroomDB.deleteStudentFromClassroom(student[0].classroom, student[0]._id);
                 }
                 
                 // Remove student's ID from the old school's list of students
                 if (student[0].school.toString() !== school) {
-                    await this.schoolDB.removeStudentFromSchool(student[0].school, student[0]._id);
+                    await this.schoolDB.deleteStudentFromSchool(student[0].school, student[0]._id);
                 }
                 
                 // Add student's ID to the new classroom's list of students
@@ -108,10 +122,10 @@ module.exports = class Student {
             return updatedStudent;
         } catch (error) {
             console.error('Error updating student:', error);
-            throw error;
+            return {error: "Error updating student"};
         }
     }
-    
+    //to test
     async deleteStudent(query) {
         try {
             // Find the student to be deleted
@@ -123,10 +137,10 @@ module.exports = class Student {
             const result = await this.dataBase.deleteStudent(query);
             
             // Remove student's ID from the classroom's list of students
-            await this.classroomDB.removeStudentFromClassroom(student[0].classroom, student[0]._id);
+            await this.classroomDB.deleteStudentFromClassroom(student[0].classroom, student[0]._id);
             
             // Remove student's ID from the school's list of students
-            await this.schoolDB.removeStudentFromSchool(student[0].school, student[0]._id);
+            await this.schoolDB.deleteStudentFromSchool(student[0].school, student[0]._id);
             
             return result;
         } catch (error) {

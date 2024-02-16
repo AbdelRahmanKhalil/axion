@@ -28,11 +28,11 @@ module.exports = class School {
             return newSchool;
         } catch (error) {
             if (error.code == '11000') {
-                return { error: 'School Already Exists' }
+                return { error: 'School Already Exists' };
             }
             return {
                 error: 'Error saving school'
-            }
+            };
         }
     }
 

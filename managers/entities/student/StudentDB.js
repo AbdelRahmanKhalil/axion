@@ -24,10 +24,10 @@ module.exports = class StudentDB {
         }
     }
 
-    async updateStudent(query, update) {
+    async updateStudent({_id, name}) {
         try {
             //dont forget to put functionality for switching class and school
-            const result = await this.studentModel.updateOne(query, update);
+            const result = await this.studentModel.updateOne({_id}, {name, school, classroom});
             return result;
         } catch (error) {
             console.error('Error updating student:', error);
