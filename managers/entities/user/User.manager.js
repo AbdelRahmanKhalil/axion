@@ -1,3 +1,4 @@
+const { privilege } = require('../../_common/schema.models');
 const UserDb = require('./UserDB');
 
 module.exports = class User {
@@ -13,52 +14,83 @@ module.exports = class User {
         this.httpExposed = ['post=createUser', 'get=getUserData', 'put=updateUser', 'delete=deleteUser'];
         //,'get=getUserData','put=updateUser','delete=deleteUser'];
         this.cache = cache;
-        this.dataBase = new UserDb(this.mongomodels.User)
+        this.dataBase = new UserDb(this.mongomodels.User);
+        //insert initial superuser if not already in db
+        /*let superUser = {
+            username: 'superUser',
+            privilege: 'superuser',
+            email: 'superuser@gmail.com',
+            password: 'superuser123'
+        };
+        try{
+            this.dataBase.insertUserInDb(superUser);
+        }catch(error){console.log(error.code == '11000'?"superUser already in db":"error inserting superUser"); }
+        */
     }
 
 
-    async createUser({ username, email, password }) {
+    async createUser({ username, privilege, email, password }) {
         console.log('-------------------UserManager createUser-------------------');
-        const user = { username, email, password };
-        console.log('username:' + user.username + ' email:' + user.email + ' password:' + user.password);
+        const user = { username, privilege, email, password };
+        console.log('username:' + user.username + 'privilege' + privilege + ' email:' + user.email + ' password:' + user.password);
         // Data validation
         let result = await this.validators.user.createUser(user);
         if (result) return result;
 
         // Creation Logic
-        let createdUser = { username, email, password }
-        let longToken = this.tokenManager.genLongToken({ userId: createdUser._id, userKey: createdUser.key });
+        let createdUser = { username, privilege, email, password }
+        let longToken = this.tokenManager.genLongToken({ userId: createdUser._id, privilege: createdUser.privilege, userKey: createdUser.key });
 
-        try{
+        try {
             // Insert user in database
             result = await this.dataBase.insertUserInDb(createdUser);
             console.log('insert res=' + result);
-        }catch(error){
+        } catch (error) {
             return {
                 error: 'Error saving user'
             }
         }
-        
+
         return {
             user: createdUser,
             longToken
         }
 
     }
+    async isUserAuthorized(decoded) {
+        try {
+            console.log("decoded=", decoded);
+            let privilege = decoded.privilege;
+            console.log("privilege=", privilege);
+            if (privilege == 'schooladmin') {
+                return false;
+            }
 
-    async deleteUser({username}) {
+        } catch (error) {
+            console.log("error validating token");
+            return false;
+        }
+        return true;
+    }
+
+    async deleteUser({ __longToken, username }) {
+
+
+        // Chech user privilege
+        if (! await this.isUserAuthorized(__longToken)) return { error: "schooladmin is unauthorized" };
+
         console.log('-------------------UserManager deleteUser-------------------');
-        let result = await this.validators.user.deleteUser({username});
+        let result = await this.validators.user.deleteUser({ username });
         if (result) return result;
         try {
 
             // Delete user from database
-            result = await this.dataBase.deleteUser({username});
+            result = await this.dataBase.deleteUser({ username });
             console.log('delete res=', result);
-            if(result.deletedCount == 1){
+            if (result.deletedCount == 1) {
                 return;
             }
-            else{
+            else {
                 return { error: 'User not found' };
             }
         } catch (error) {
@@ -67,8 +99,13 @@ module.exports = class User {
         }
     }
 
-    async updateUser({ username, email, password }) {
+    async updateUser(__longToken, { username, email, password }) {
         console.log('-------------------UserManager updateUser-------------------');
+
+        // Chech user privilege
+        if (! await this.isUserAuthorized(__longToken)) return { error: "schooladmin is unauthorized" };
+
+
         const updatedUser = { username, email, password };
 
         // Data validation
@@ -77,12 +114,12 @@ module.exports = class User {
 
         try {
             // Update user in database
-            result = await this.dataBase.updateUser({username: updatedUser.username},{email: updatedUser.email, password: updatedUser.password});
+            result = await this.dataBase.updateUser({ username: updatedUser.username }, { email: updatedUser.email, password: updatedUser.password });
             console.log('update res=', result);
-            if(result.matchedCount == 0){
+            if (result.matchedCount == 0) {
                 return { error: 'User not found' };
             }
-            else if(result.matchedCount == 1 && result.modifiedCount == 0){
+            else if (result.matchedCount == 1 && result.modifiedCount == 0) {
                 return { error: 'Nothing to update' };
             }
             return {
@@ -96,17 +133,22 @@ module.exports = class User {
 
     async getUserData({ __query }) {
         console.log('-------------------getUserData-------------------');
+
+        // Chech user privilege
+        if (! await this.isUserAuthorized(__longToken)) return { error: "schooladmin is unauthorized" };
+
+
         try {
 
             console.log(__query.username);
             const username = __query.username;
-            
-            let result = await this.validators.user.getUserData({username});
+
+            let result = await this.validators.user.getUserData({ username });
             if (result) return result;
             // Retrieve user data from database
             result = await this.dataBase.findUsers({ username: username })
             console.log('get res=', result);
-            if (result.length == 0){
+            if (result.length == 0) {
                 return { error: 'User not found' };
             }
 

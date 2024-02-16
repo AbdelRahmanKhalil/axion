@@ -7,6 +7,10 @@ const userSchema = new mongoose.Schema({
         required: true,
         unique: true // Ensure usernames are unique
     },
+    privilege:{
+        type: String,
+        required: true
+    },
     email: {
         type: String,
         required: true,

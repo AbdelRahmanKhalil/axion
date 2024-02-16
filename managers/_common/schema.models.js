@@ -6,6 +6,13 @@ module.exports = {
         type: "string",
         length: { min: 1, max: 50 },
     },
+    privilege: {
+        path: "privilege",
+        //type: "string",
+        oneOf: ['schooladmin','superadmin'],
+        
+        //length: {min: 10, max: 11},
+    },
     school: {
         path: "school",
         type: "string",

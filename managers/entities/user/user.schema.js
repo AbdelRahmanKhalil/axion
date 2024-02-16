@@ -7,6 +7,10 @@ module.exports = {
             required: true,
         },
         {
+            model: 'privilege',
+            required: true,
+        },
+        {
             model: 'email',
             required: true,
         },
