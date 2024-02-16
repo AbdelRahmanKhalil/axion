@@ -53,4 +53,14 @@ module.exports = class ClassroomDB {
             throw error;
         }
     }
+
+    async deleteStudentFromClassroom(classroomId, studentId) {
+        try {
+            const result = await this.classroomModel.updateOne({ _id: classroomId }, { $pull: { students: studentId } });
+            return result;
+        } catch (error) {
+            console.error('Error deleting student from classroom:', error);
+            throw error;
+        }
+    }
 }

@@ -63,4 +63,25 @@ module.exports = class SchoolDB {
             throw error;
         }
     }
+
+    async deleteClassroomFromSchool(schoolId, classroomId) {
+        try {
+            const result = await this.schoolModel.updateOne({ _id: schoolId }, { $pull: { classrooms: classroomId } });
+            return result;
+        } catch (error) {
+            console.error('Error deleting classroom from school:', error);
+            throw error;
+        }
+    }
+    
+    async deleteStudentFromSchool(schoolId, studentId) {
+        try {
+            const result = await this.schoolModel.updateOne({ _id: schoolId }, { $pull: { students: studentId } });
+            return result;
+        } catch (error) {
+            console.error('Error deleting student from school:', error);
+            throw error;
+        }
+    }
+    
 }

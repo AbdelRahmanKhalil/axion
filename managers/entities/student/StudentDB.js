@@ -26,6 +26,7 @@ module.exports = class StudentDB {
 
     async updateStudent(query, update) {
         try {
+            //dont forget to put functionality for switching class and school
             const result = await this.studentModel.updateOne(query, update);
             return result;
         } catch (error) {
@@ -40,6 +41,26 @@ module.exports = class StudentDB {
             return result;
         } catch (error) {
             console.error('Error deleting student:', error);
+            throw error;
+        }
+    }
+
+    async deleteClassroomFromStudent(studentId) {
+        try {
+            const result = await this.studentModel.updateOne({ _id: studentId }, { $unset: { classroom: "" } });
+            return result;
+        } catch (error) {
+            console.error('Error deleting classroom from student:', error);
+            throw error;
+        }
+    }
+
+    async deleteSchoolFromStudent(studentId) {
+        try {
+            const result = await this.studentModel.updateOne({ _id: studentId }, { $unset: { school: "" } });
+            return result;
+        } catch (error) {
+            console.error('Error deleting school from student:', error);
             throw error;
         }
     }
