@@ -137,7 +137,7 @@ module.exports = class User {
         console.log('-------------------getUserData-------------------');
 
         // Chech user privilege
-        if (! await this.isUserAuthorized(__longToken.__longToken)) return { error: "schooladmin is unauthorized" };
+        if (! await this.isUserAuthorized(__longToken)) return { error: "schooladmin is unauthorized" };
 
 
         try {
