@@ -17,8 +17,26 @@ module.exports = class School {
         this.dataBase = new SchoolDB(this.mongomodels.School);
         this.classroomDB = new ClassroomDB(this.mongomodels.Classroom);
     }
+    async isUserAuthorized(decoded) {
+        try {
+            console.log("decoded=", decoded);
+            let privilege = decoded.privilege;
+            console.log("privilege=", privilege);
+            if (privilege == 'schooladmin') {
+                return false;
+            }
 
-    async createSchool(schoolData) {
+        } catch (error) {
+            console.log("error validating token");
+            return false;
+        }
+        return true;
+    }
+    async createSchool(__longToken) {
+        let schoolData = {};
+        if (__longToken.name) { schoolData = { name: __longToken.name } } else return { error: "name is required" };
+        // Chech user privilege
+        if (! await this.isUserAuthorized(__longToken.__longToken)) return { error: "schooladmin is unauthorized" };
         // Data validation
         let result = await this.validators.school.createSchool(schoolData);
         console.log("validation result:", result);
@@ -70,12 +88,28 @@ module.exports = class School {
     //     }
     // }
 
-    async deleteSchool({ id, name }) {
-        const todeleteSchool = { id, name }
+    async deleteSchool(__longToken) {
+
+        let todeleteSchool = {};
+        let name = null;
+        let id = null;
+        if (__longToken.name) {
+            todeleteSchool = { name: __longToken.name };
+            name = __longToken.name;
+        }
+        else if (__longToken.id) {
+            todeleteSchool = { id: __longToken.id}
+            id =  __longToken.id;
+
+        }
+        // Chech user privilege
+        if (! await this.isUserAuthorized(__longToken.__longToken)) return { error: "schooladmin is unauthorized" };
+
+
         // Data validation
         let result = await this.validators.school.deleteSchool(todeleteSchool);
         console.log("validation result:", result);
-        if(result) return {error: result[0].message};
+        if (result) return { error: result[0].message };
 
         try {
             let query = {};
